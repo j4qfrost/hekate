@@ -29,7 +29,7 @@ docs/          Spec, architecture, self-host guide, roadmap, ADRs
 ## 5-minute self-host
 
 ```bash
-git clone https://github.com/<owner>/hekate.git
+git clone https://github.com/j4qfrost/hekate.git
 cd hekate/deploy
 docker compose up -d
 ```

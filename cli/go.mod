@@ -1,3 +1,3 @@
-module github.com/hekate-events/hekate/cli
+module github.com/j4qfrost/hekate/cli
 
 go 1.22

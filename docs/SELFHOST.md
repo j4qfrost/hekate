@@ -13,7 +13,7 @@ That is the entire prerequisite list. Node, Go, sqlc, and goose are NOT required
 ## One command
 
 ```bash
-git clone https://github.com/<owner>/hekate.git
+git clone https://github.com/j4qfrost/hekate.git
 cd hekate/deploy
 docker compose up -d
 ```

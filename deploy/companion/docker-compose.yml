@@ -1,0 +1,75 @@
+# hekate companion stream-processing stack (RisingWave).
+#
+# Self-contained, NOT extended into the production deploy/docker-compose.yml.
+# `make selfhost-smoke` is unaffected.
+#
+# Bring-up: `make companion-up`. Apply workload SQL + load fixtures with
+# `make companion-load`. Tear down: `make companion-down`.
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hekate
+      POSTGRES_PASSWORD: hekate
+      POSTGRES_DB: hekate
+    # Logical replication (required for RisingWave's Postgres-CDC source) is
+    # off by default. wal_level cannot change at runtime, so we set it here
+    # rather than via /docker-entrypoint-initdb.d/. See
+    # deploy/postgres-init/logical-replication.md for the full rationale.
+    command: >
+      postgres
+      -c wal_level=logical
+      -c max_replication_slots=10
+      -c max_wal_senders=10
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hekate -d hekate"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # One-shot: applies server/migrations/*.sql against postgres on each
+  # bring-up. goose is idempotent — already-applied migrations are skipped.
+  goose:
+    image: golang:1.22-alpine
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      GOOSE_DRIVER: postgres
+      GOOSE_DBSTRING: "host=postgres port=5432 user=hekate password=hekate dbname=hekate sslmode=disable"
+      GOFLAGS: "-mod=mod"
+    volumes:
+      - ../../server/migrations:/migrations:ro
+      - go-cache:/go
+    working_dir: /migrations
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "go install github.com/pressly/goose/v3/cmd/goose@v3.21.1 &&
+       /go/bin/goose -dir /migrations postgres
+       \"host=postgres port=5432 user=hekate password=hekate dbname=hekate sslmode=disable\" up"
+    restart: "no"
+
+  risingwave:
+    image: risingwavelabs/risingwave:v2.1.0
+    depends_on:
+      goose:
+        condition: service_completed_successfully
+    command: ["playground"]
+    ports:
+      - "4566:4566"   # frontend (Postgres-wire compatible)
+      - "5691:5691"   # meta + dashboard
+    healthcheck:
+      test: ["CMD", "/bin/sh", "-c", "echo > /dev/tcp/127.0.0.1/4566"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  postgres-data:
+  go-cache:

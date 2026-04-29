@@ -19,8 +19,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/hekate-events/hekate/server/internal/api"
-	"github.com/hekate-events/hekate/server/internal/config"
+	"github.com/j4qfrost/hekate/server/internal/api"
+	"github.com/j4qfrost/hekate/server/internal/config"
 )
 
 func main() {

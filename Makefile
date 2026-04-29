@@ -1,7 +1,7 @@
 # hekate — top-level Makefile
 # Wraps per-subproject toolchains so contributors don't have to memorise them.
 
-.PHONY: help dev test lex-validate selfhost-smoke server-build server-test cli-build cli-test web-install web-check web-build clean
+.PHONY: help dev test lex-validate selfhost-smoke server-build server-test cli-build cli-test web-install web-check web-build clean companion-up companion-down companion-load companion-verify
 
 help:
 	@echo "hekate development targets"
@@ -18,6 +18,11 @@ help:
 	@echo "  make web-install      install web deps (pnpm install)"
 	@echo "  make web-check        type-check + lint web"
 	@echo "  make web-build        build web for production"
+	@echo ""
+	@echo "  make companion-up     bring up the RisingWave companion stack (deploy/companion/)"
+	@echo "  make companion-down   tear down the companion stack"
+	@echo "  make companion-load   apply RisingWave SQL + run hekate-fixturegen (--scenario=skewed)"
+	@echo "  make companion-verify run W3 collision-rule correctness check vs. Postgres ground truth"
 	@echo ""
 	@echo "  make clean            remove build artefacts"
 
@@ -70,5 +75,44 @@ web-build:
 	cd web && pnpm build
 
 clean:
-	rm -rf server/bin cli/bin web/build web/.svelte-kit
+	rm -rf server/bin cli/bin web/build web/.svelte-kit companion/bin
 	@echo "cleaned"
+
+# Companion stream-processing stack (RisingWave). Self-contained; does NOT
+# join `selfhost-smoke`. See docs/adr/0004-companion-stream-engine.md.
+
+COMPANION_COMPOSE := docker compose -f deploy/companion/docker-compose.yml
+PG_DSN_COMPANION  := postgres://hekate:hekate@localhost:5433/hekate?sslmode=disable
+RW_DSN_COMPANION  := postgres://root@localhost:4566/dev?sslmode=disable
+
+companion-up:
+	@echo ">> bringing up companion stack (postgres + goose + risingwave)"
+	$(COMPANION_COMPOSE) up -d
+	@echo ">> waiting for risingwave to accept connections on :4566"
+	@for i in $$(seq 1 60); do \
+		if $(COMPANION_COMPOSE) exec -T risingwave sh -c 'echo > /dev/tcp/127.0.0.1/4566' >/dev/null 2>&1; then \
+			echo "risingwave up"; exit 0; \
+		fi; \
+		sleep 2; \
+	done; \
+	echo "risingwave did not become reachable"; exit 1
+
+companion-down:
+	$(COMPANION_COMPOSE) down -v
+
+companion-load: companion-up
+	@echo ">> applying companion SQL to risingwave"
+	$(COMPANION_COMPOSE) run --rm \
+	  -v "$(CURDIR)/companion/sql:/sql:ro" \
+	  --entrypoint sh postgres -c \
+	  'set -e; for f in /sql/*.sql; do echo "applying $$f"; psql "postgres://root@risingwave:4566/dev?sslmode=disable" -v ON_ERROR_STOP=1 -f "$$f"; done'
+	@echo ">> running hekate-fixturegen (skewed)"
+	cd companion && go run ./fixturegen/cmd/hekate-fixturegen \
+	  --dsn "$(PG_DSN_COMPANION)" \
+	  --scenario=skewed \
+	  --num-venues=3 --slots-per-venue=4 --collision-rate=0.6
+
+companion-verify:
+	cd companion && go run ./verify/cmd/hekate-verify-w3 \
+	  --postgres-dsn "$(PG_DSN_COMPANION)" \
+	  --risingwave-dsn "$(RW_DSN_COMPANION)"

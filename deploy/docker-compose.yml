@@ -18,7 +18,7 @@ services:
     build:
       context: ../server
       dockerfile: Dockerfile
-    image: ghcr.io/hekate-events/hekate-server:dev
+    image: ghcr.io/j4qfrost/hekate-server:dev
     restart: unless-stopped
     depends_on:
       postgis:
@@ -35,7 +35,7 @@ services:
     build:
       context: ../web
       dockerfile: Dockerfile
-    image: ghcr.io/hekate-events/hekate-web:dev
+    image: ghcr.io/j4qfrost/hekate-web:dev
     restart: unless-stopped
     depends_on:
       - hekate-server
