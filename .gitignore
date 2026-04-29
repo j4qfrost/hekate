@@ -1,0 +1,45 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+.claude/
+
+# Env & secrets
+.env
+.env.local
+.env.*.local
+deploy/.env
+
+# Go
+/server/bin/
+/cli/bin/
+*.test
+*.out
+coverage.txt
+
+# Node
+node_modules/
+.pnpm-store/
+.svelte-kit/
+/web/build/
+/web/.vite/
+/web/dist/
+*.log
+
+# Docker / runtime
+/deploy/data/
+/deploy/postgres-data/
+
+# Local DB dumps
+*.sqlite
+*.sqlite-journal
+*.db
+
+# Build artefacts
+/dist/
+/.cache/

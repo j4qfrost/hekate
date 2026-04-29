@@ -1,0 +1,52 @@
+{
+  "lexicon": 1,
+  "id": "app.hekate.recurrence",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A recurring slot template owned by a venue. The indexer expands this into individual app.hekate.slot records up to a configured horizon (default 90 days). The recurrence record is the source of truth; expanded slots are derived state.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["venue", "rrule", "slotDurationMinutes", "validFrom", "createdAt"],
+        "properties": {
+          "venue": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI of the app.hekate.venue this recurrence belongs to. The venue's authoring DID MUST equal this record's authoring DID; mismatched records are rejected by the indexer."
+          },
+          "rrule": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "RFC 5545 RRULE string, e.g. 'FREQ=WEEKLY;BYDAY=TH;BYHOUR=19'. DTSTART is taken from validFrom."
+          },
+          "slotDurationMinutes": {
+            "type": "integer",
+            "minimum": 5,
+            "maximum": 10080,
+            "description": "Duration of each generated slot, in minutes. Maximum is one week."
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 240,
+            "description": "Optional title applied to the slot template (e.g. 'Tuesday game night'). Slots inherit this for display until an event claims them."
+          },
+          "validFrom": {
+            "type": "string",
+            "format": "datetime",
+            "description": "First moment at which the rule may produce slots. Acts as DTSTART for the RRULE."
+          },
+          "validUntil": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Optional last moment at which the rule may produce slots. Absent means open-ended (capped by indexer horizon)."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    }
+  }
+}

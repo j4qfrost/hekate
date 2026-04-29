@@ -1,0 +1,15 @@
+services:
+  postgis:
+    image: postgis/postgis:16-3.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hekate
+      POSTGRES_PASSWORD: hekate
+      POSTGRES_DB: hekate
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgis-dev-data:/var/lib/postgresql/data
+
+volumes:
+  postgis-dev-data:

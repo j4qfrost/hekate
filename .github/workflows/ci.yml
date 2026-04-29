@@ -1,0 +1,85 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lex-validate:
+    name: lexicons
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: validate lexicons
+        run: make lex-validate
+
+  server:
+    name: server (Go)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache-dependency-path: server/go.sum
+      - name: vet
+        working-directory: server
+        run: go vet ./...
+      - name: test
+        working-directory: server
+        run: go test ./...
+      - name: build
+        working-directory: server
+        run: go build ./...
+
+  cli:
+    name: cli (Go)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache-dependency-path: cli/go.sum
+      - name: vet
+        working-directory: cli
+        run: go vet ./...
+      - name: test
+        working-directory: cli
+        run: go test ./...
+      - name: build
+        working-directory: cli
+        run: go build ./...
+
+  web:
+    name: web (SvelteKit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: install
+        working-directory: web
+        run: pnpm install --frozen-lockfile
+      - name: check
+        working-directory: web
+        run: pnpm check
+      - name: test
+        working-directory: web
+        run: pnpm test
+      - name: build
+        working-directory: web
+        run: pnpm build

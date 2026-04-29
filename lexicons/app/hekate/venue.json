@@ -1,0 +1,142 @@
+{
+  "lexicon": 1,
+  "id": "app.hekate.venue",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A place that hosts events. Owned by the authoring DID. Geo coordinates and capacity are first-class so venues can be discovered and filtered without an event being attached.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["name", "geo", "bookingPolicy", "createdAt"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 240,
+            "minLength": 1,
+            "description": "Human-readable venue name."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 3000,
+            "description": "Free-form description; markdown is permitted but rendering is up to the client."
+          },
+          "geo": {
+            "type": "ref",
+            "ref": "#geoPoint"
+          },
+          "address": {
+            "type": "ref",
+            "ref": "#postalAddress"
+          },
+          "capacity": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Maximum total attendance the venue can host. Optional; absent means unbounded or unspecified."
+          },
+          "amenities": {
+            "type": "array",
+            "maxLength": 32,
+            "items": {
+              "type": "string",
+              "maxLength": 64,
+              "knownValues": [
+                "wifi",
+                "parking",
+                "wheelchair-accessible",
+                "av-equipment",
+                "kitchen",
+                "outdoor",
+                "indoor",
+                "stage",
+                "projector",
+                "whiteboard",
+                "childcare",
+                "pet-friendly"
+              ]
+            },
+            "description": "Free-form amenity tags. Clients SHOULD prefer values from knownValues for filterability."
+          },
+          "bookingPolicy": {
+            "type": "string",
+            "enum": ["open", "review"],
+            "default": "open",
+            "description": "open: any DID can claim a slot by publishing an event record. review: the venue owner must accept the claim out-of-band before the slot transitions to claimed."
+          },
+          "contact": {
+            "type": "ref",
+            "ref": "#contactInfo"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    },
+    "geoPoint": {
+      "type": "object",
+      "required": ["lat", "lon"],
+      "properties": {
+        "lat": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        },
+        "lon": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        },
+        "altitudeMeters": {
+          "type": "number",
+          "description": "Optional. Altitude in meters above sea level."
+        }
+      }
+    },
+    "postalAddress": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Free-form address text. Use this if you do not have structured fields."
+        },
+        "locality": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "City or town."
+        },
+        "region": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "State, province, or sub-national region."
+        },
+        "country": {
+          "type": "string",
+          "maxLength": 2,
+          "minLength": 2,
+          "description": "ISO 3166-1 alpha-2 country code."
+        },
+        "postalCode": {
+          "type": "string",
+          "maxLength": 32
+        }
+      }
+    },
+    "contactInfo": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "maxLength": 254
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 512
+        }
+      }
+    }
+  }
+}

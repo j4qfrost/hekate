@@ -1,0 +1,55 @@
+{
+  "lexicon": 1,
+  "id": "app.hekate.slot",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A bookable time-window at a venue. Authored by the venue's owning DID. Slots are open by default; an organizer claims a slot by publishing an app.hekate.event referencing it. Slots derived from a recurrence carry the recurrence AT-URI for traceability but are still independently addressable records.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["venue", "start", "end", "status", "createdAt"],
+        "properties": {
+          "venue": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI of the app.hekate.venue this slot belongs to. MUST be authored by the same DID as this slot."
+          },
+          "recurrence": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "Optional AT-URI of the app.hekate.recurrence that produced this slot. Indexers MAY use this to garbage-collect derived slots when the recurrence is updated."
+          },
+          "start": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "end": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["open", "claimed", "cancelled"],
+            "default": "open",
+            "description": "open: claimable. claimed: an event references this slot. cancelled: the venue has withdrawn the slot. The venue owner sets the initial status; transition to claimed is performed by the indexer when it observes a valid app.hekate.event referencing this slot."
+          },
+          "claimedBy": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "Set by the indexer (NOT by clients) when status transitions to claimed. AT-URI of the winning app.hekate.event. Multiple events racing for the same slot are resolved by earliest createdAt; losers are surfaced off-PDS by the indexer."
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Optional free-form notes from the venue owner about this specific slot."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    }
+  }
+}

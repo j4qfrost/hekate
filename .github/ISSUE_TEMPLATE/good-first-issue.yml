@@ -1,0 +1,34 @@
+name: Good first issue (maintainers)
+description: Template for opening a self-contained issue for a first-time contributor.
+labels: [good-first-issue, help-wanted]
+body:
+  - type: input
+    id: scope
+    attributes:
+      label: Scope
+      description: One sentence — what does the contributor need to do?
+    validations:
+      required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: Where in the repo
+      description: Files / packages they'll touch. Be specific — first-timers should not have to guess.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: A bulleted list. Each line should be checkable.
+      placeholder: |
+        - [ ] new test in foo/bar_test.go covering …
+        - [ ] documentation in docs/SPEC.md updated for …
+        - [ ] `make test` passes
+    validations:
+      required: true
+  - type: textarea
+    id: hints
+    attributes:
+      label: Hints (optional)
+      description: Anything that would have saved you 30 minutes of digging.

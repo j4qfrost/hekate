@@ -1,0 +1,61 @@
+{
+  "lexicon": 1,
+  "id": "app.hekate.event",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "An event organized into a slot. The authoring DID is the organizer. An event record is also the slot-claim signal: publishing this record asks the indexer to transition the referenced slot to claimed (or, for review-policy venues, to pending).",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["slot", "title", "createdAt"],
+        "properties": {
+          "slot": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI of the app.hekate.slot this event claims. The slot's authoring DID is the venue owner; the event's authoring DID is the organizer (these MUST be different for a valid claim, except in self-hosted-venue cases)."
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 240,
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 10000,
+            "description": "Free-form description; markdown is permitted."
+          },
+          "tags": {
+            "type": "array",
+            "maxLength": 16,
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            }
+          },
+          "visibility": {
+            "type": "string",
+            "enum": ["public", "unlisted"],
+            "default": "public",
+            "description": "public: discoverable by indexers and listed in venue/search results. unlisted: indexed only when the AT-URI is known. Note: ATProto records are inherently public; this flag is an indexer hint, not an access-control mechanism."
+          },
+          "capacityCap": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Optional organizer-imposed RSVP cap; absent means use the venue's capacity."
+          },
+          "externalUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 512,
+            "description": "Optional link to external event details (ticketing, agenda, etc.)."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "lexicon": 1,
+  "id": "app.hekate.rsvp",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "An attendee's response to an event. The authoring DID is the attendee. Multiple RSVPs from the same DID for the same event collapse to the most recent createdAt at the indexer; clients SHOULD upsert by deleting the previous record before publishing a new one.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["event", "status", "createdAt"],
+        "properties": {
+          "event": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI of the app.hekate.event being responded to."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["going", "maybe", "declined"],
+            "description": "going counts toward capacity. maybe is informational. declined is informational and lets the organizer estimate signal vs noise."
+          },
+          "guestCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 16,
+            "description": "Number of additional guests the attendee is bringing. Counts toward capacity. Default 0."
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Optional free-form note to the organizer."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    }
+  }
+}

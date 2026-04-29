@@ -1,0 +1,49 @@
+services:
+  postgis:
+    image: postgis/postgis:16-3.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hekate}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hekate}
+      POSTGRES_DB: ${POSTGRES_DB:-hekate}
+    volumes:
+      - postgis-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hekate} -d ${POSTGRES_DB:-hekate}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  hekate-server:
+    build:
+      context: ../server
+      dockerfile: Dockerfile
+    image: ghcr.io/hekate-events/hekate-server:dev
+    restart: unless-stopped
+    depends_on:
+      postgis:
+        condition: service_healthy
+    environment:
+      HEKATE_LISTEN: ":8080"
+      HEKATE_DATABASE_URL: "postgres://${POSTGRES_USER:-hekate}:${POSTGRES_PASSWORD:-hekate}@postgis:5432/${POSTGRES_DB:-hekate}?sslmode=disable"
+      HEKATE_RELAY_URL: "${HEKATE_RELAY_URL:-wss://bsky.network/xrpc/com.atproto.sync.subscribeRepos}"
+      HEKATE_RECURRENCE_HORIZON_DAYS: "${HEKATE_RECURRENCE_HORIZON_DAYS:-90}"
+    ports:
+      - "8080:8080"
+
+  hekate-web:
+    build:
+      context: ../web
+      dockerfile: Dockerfile
+    image: ghcr.io/hekate-events/hekate-web:dev
+    restart: unless-stopped
+    depends_on:
+      - hekate-server
+    environment:
+      PUBLIC_HEKATE_API_URL: "${WEB_PUBLIC_API_URL:-http://localhost:8080}"
+      PORT: "3000"
+    ports:
+      - "5173:3000"
+
+volumes:
+  postgis-data:

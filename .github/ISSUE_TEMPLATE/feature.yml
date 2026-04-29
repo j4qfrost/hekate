@@ -1,0 +1,28 @@
+name: Feature request
+description: Suggest a feature, lexicon change, or scope expansion.
+labels: [discussion]
+body:
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: What problem are you trying to solve? Use cases beat feature lists.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed approach
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: checkboxes
+    id: surface
+    attributes:
+      label: Touches the protocol surface?
+      options:
+        - label: Yes — this changes a lexicon, the read API, or federation behaviour. Author knows an ADR will be required.
+        - label: No — this is server-internal, CLI-internal, or web-internal.
