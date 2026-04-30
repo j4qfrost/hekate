@@ -1,7 +1,7 @@
 # hekate — top-level Makefile
 # Wraps per-subproject toolchains so contributors don't have to memorise them.
 
-.PHONY: help dev test lex-validate selfhost-smoke server-build server-test cli-build cli-test web-install web-check web-build clean companion-up companion-down companion-load companion-verify
+.PHONY: help dev test lex-validate selfhost-smoke server-build server-test cli-build cli-test web-install web-check web-build clean companion-up companion-down companion-load companion-verify obs-up obs-down obs-status
 
 help:
 	@echo "hekate development targets"
@@ -23,6 +23,10 @@ help:
 	@echo "  make companion-down   tear down the companion stack"
 	@echo "  make companion-load   apply RisingWave SQL + run hekate-fixturegen (--scenario=skewed)"
 	@echo "  make companion-verify run W3 collision-rule correctness check vs. Postgres ground truth"
+	@echo ""
+	@echo "  make obs-up           bring up the LGTM observability stack (deploy/observability/)"
+	@echo "  make obs-down         tear down the observability stack"
+	@echo "  make obs-status       show observability stack health + URLs"
 	@echo ""
 	@echo "  make clean            remove build artefacts"
 
@@ -116,3 +120,35 @@ companion-verify:
 	cd companion && go run ./verify/cmd/hekate-verify-w3 \
 	  --postgres-dsn "$(PG_DSN_COMPANION)" \
 	  --risingwave-dsn "$(RW_DSN_COMPANION)"
+
+# LGTM observability stack (Loki + Grafana + Tempo + Mimir via grafana/otel-lgtm).
+# Self-contained; does NOT join `selfhost-smoke`. See docs/adr/0005-lgtm-observability-stack.md
+# and docs/OBSERVABILITY.md.
+
+OBS_COMPOSE := docker compose -f deploy/observability/docker-compose.yml
+
+obs-up:
+	@echo ">> bringing up LGTM stack (grafana/otel-lgtm)"
+	$(OBS_COMPOSE) up -d
+	@echo ">> waiting for Grafana on :3001"
+	@for i in $$(seq 1 30); do \
+		if curl -fs http://localhost:3001/api/health >/dev/null 2>&1; then \
+			echo "Grafana up: http://localhost:3001/d/hekate-overview"; \
+			echo "OTLP endpoint: localhost:4317 (gRPC) / localhost:4318 (HTTP)"; \
+			exit 0; \
+		fi; \
+		sleep 2; \
+	done; \
+	echo "Grafana did not become healthy in 60s; check 'docker logs hekate-lgtm'"; exit 1
+
+obs-down:
+	$(OBS_COMPOSE) down -v
+
+obs-status:
+	@$(OBS_COMPOSE) ps
+	@echo ""
+	@echo "Grafana:  http://localhost:3001/d/hekate-overview  (anonymous Admin)"
+	@echo "OTLP:     localhost:4317 (gRPC) / localhost:4318 (HTTP)"
+	@echo "Loki:     http://localhost:3100"
+	@echo "Tempo:    http://localhost:3200"
+	@echo "Mimir:    http://localhost:9009"

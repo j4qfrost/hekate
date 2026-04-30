@@ -1,0 +1,14 @@
+apiVersion: 1
+providers:
+  - name: hekate
+    orgId: 1
+    folder: hekate
+    folderUid: hekate
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /otel-lgtm/grafana/dashboards-extra
+      foldersFromFilesStructure: false

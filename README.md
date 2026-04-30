@@ -36,6 +36,10 @@ docker compose up -d
 
 Server on `:8080`, web on `:5173`, Postgres+PostGIS managed automatically. See [`docs/SELFHOST.md`](docs/SELFHOST.md) for production hardening.
 
+## Observability
+
+Optional LGTM stack (Loki, Grafana, Tempo, Mimir) via OpenTelemetry — pre-provisioned dashboard for **venue users** and **events processing**. Bring up with `make obs-up`, point hekate-server at `localhost:4317`, open Grafana at `http://localhost:3001/d/hekate-overview`. See [`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md) and [ADR 0005](docs/adr/0005-lgtm-observability-stack.md). Stays out of the production self-host compose so the 5-minute promise holds.
+
 ## Contributing
 
 Apache-2.0, DCO sign-off (no CLA). See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the contributor ladder and good-first-issue map. Architecture decisions are documented in [`docs/adr/`](docs/adr/).

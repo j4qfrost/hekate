@@ -21,6 +21,7 @@ import (
 
 	"github.com/j4qfrost/hekate/server/internal/api"
 	"github.com/j4qfrost/hekate/server/internal/config"
+	"github.com/j4qfrost/hekate/server/internal/telemetry"
 )
 
 func main() {
@@ -38,6 +39,21 @@ func main() {
 		"relay", cfg.RelayURL,
 		"horizon_days", cfg.RecurrenceHorizonDays,
 	)
+
+	telemetryCtx, telemetryCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	tp, err := telemetry.Init(telemetryCtx, telemetry.FromEnv())
+	telemetryCancel()
+	if err != nil {
+		slog.Error("telemetry init failed", "err", err)
+		os.Exit(1)
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := tp.Shutdown(shutdownCtx); err != nil {
+			slog.Warn("telemetry shutdown failed", "err", err)
+		}
+	}()
 
 	mux := api.NewRouter()
 

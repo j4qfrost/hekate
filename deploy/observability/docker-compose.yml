@@ -1,0 +1,48 @@
+# LGTM observability stack (Loki, Grafana, Tempo, Mimir) for hekate.
+# Self-contained — does NOT join the production self-host compose; see
+# docs/adr/0005-lgtm-observability-stack.md for why.
+#
+# Bring up with `make obs-up`; it starts the all-in-one grafana/otel-lgtm
+# image plus a small Alloy gateway that forwards collected scrape data.
+# Point hekate-server at this stack with:
+#   HEKATE_OTLP_ENDPOINT=localhost:4317
+#   HEKATE_OTLP_INSECURE=true
+#
+# UIs:
+#   Grafana          http://localhost:3001
+#   Loki API         http://localhost:3100
+#   Tempo            http://localhost:3200
+#   Prom-compatible  http://localhost:9009  (Mimir)
+#   OTLP/gRPC        localhost:4317
+#   OTLP/HTTP        localhost:4318
+
+name: hekate-observability
+
+services:
+  lgtm:
+    image: grafana/otel-lgtm:0.8.1
+    container_name: hekate-lgtm
+    restart: unless-stopped
+    ports:
+      - "3001:3000"   # Grafana (UI). 3001 chosen to avoid collisions with other dev servers.
+      - "4317:4317"   # OTLP/gRPC
+      - "4318:4318"   # OTLP/HTTP
+      - "3100:3100"   # Loki
+      - "3200:3200"   # Tempo
+      - "9009:9009"   # Mimir
+    volumes:
+      - lgtm-data:/data
+      - ./grafana/dashboards:/otel-lgtm/grafana/dashboards-extra:ro
+      - ./grafana/provisioning/dashboards:/otel-lgtm/grafana/conf/provisioning/dashboards:ro
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health | grep -q ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  lgtm-data:

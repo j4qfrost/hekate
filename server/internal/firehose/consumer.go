@@ -13,13 +13,21 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/events"
 	"github.com/bluesky-social/indigo/events/schedulers/sequential"
 	"github.com/bluesky-social/indigo/repo"
 	"github.com/gorilla/websocket"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
+
+	"github.com/j4qfrost/hekate/server/internal/telemetry"
 )
+
+var firehoseTracer trace.Tracer = telemetry.Tracer("github.com/j4qfrost/hekate/server/internal/firehose")
 
 // HekateNamespace is the lexicon NSID prefix the indexer cares about. Op
 // paths look like "app.hekate.venue/3kabcde…".
@@ -104,9 +112,25 @@ func (s *IndigoSource) handleCommit(
 		return nil
 	}
 
+	start := time.Now()
+	ctx, span := firehoseTracer.Start(ctx, "firehose.handle_commit",
+		trace.WithAttributes(
+			attribute.String("hekate.did", commit.Repo),
+			attribute.Int64("atproto.commit.seq", commit.Seq),
+			attribute.Int("atproto.commit.ops", len(commit.Ops)),
+		))
+	defer func() {
+		telemetry.FirehoseHandleDuration.Record(ctx, time.Since(start).Seconds())
+		span.End()
+	}()
+
 	r, err := repo.ReadRepoFromCar(ctx, bytes.NewReader(commit.Blocks))
 	if err != nil {
-		// A malformed CAR shouldn't kill the stream; log and skip the commit.
+		// A malformed CAR shouldn't kill the stream; log, count, and skip.
+		telemetry.FirehoseDecodeErrors.Add(ctx, 1, metric.WithAttributes(
+			attribute.String("reason", "read_car"),
+		))
+		span.RecordError(err)
 		log.Warn("read CAR failed", "did", commit.Repo, "seq", commit.Seq, "err", err)
 		return nil
 	}
@@ -122,6 +146,11 @@ func (s *IndigoSource) handleCommit(
 		collection := op.Path[:slash]
 		rkey := op.Path[slash+1:]
 
+		labels := metric.WithAttributes(
+			attribute.String("collection", collection),
+			attribute.String("action", op.Action),
+		)
+
 		switch op.Action {
 		case "create", "update":
 			if op.Cid == nil {
@@ -129,6 +158,10 @@ func (s *IndigoSource) handleCommit(
 			}
 			cc, raw, err := r.GetRecordBytes(ctx, op.Path)
 			if err != nil {
+				telemetry.FirehoseDecodeErrors.Add(ctx, 1, metric.WithAttributes(
+					attribute.String("reason", "get_record"),
+					attribute.String("collection", collection),
+				))
 				log.Warn("get record failed", "did", commit.Repo, "path", op.Path, "err", err)
 				continue
 			}
@@ -143,6 +176,7 @@ func (s *IndigoSource) handleCommit(
 			if err := emit(ctx, sink, ev); err != nil {
 				return err
 			}
+			telemetry.FirehoseEvents.Add(ctx, 1, labels)
 
 		case "delete":
 			ev := Event{
@@ -154,6 +188,7 @@ func (s *IndigoSource) handleCommit(
 			if err := emit(ctx, sink, ev); err != nil {
 				return err
 			}
+			telemetry.FirehoseEvents.Add(ctx, 1, labels)
 		}
 	}
 	return nil
