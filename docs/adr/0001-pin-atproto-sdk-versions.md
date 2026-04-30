@@ -21,6 +21,19 @@ A salt-mines panel evaluation (2026-04-29) flagged this as a sev-4 risk.
 3. **Codegen output committed.** Generated lexicon code under `server/internal/lexicon/` is committed (not built fresh in CI), so contributors can reproduce builds without the toolchain.
 4. **CI gate.** A `make lex-validate` step parses every lexicon against the upstream meta-schema (vendored copy or fetched on demand) and fails the build if any record diverges. A version drift check (`make lex-versions`) prints the pinned SDK versions and roadmap status.
 
+## Pinned versions (2026-04-29)
+
+These pins land alongside the first real M1 firehose code (`server/internal/firehose/consumer.go`). They are ground truth — SDK upgrades MUST update both this ADR and the relevant lockfile in the same PR.
+
+| Ecosystem | Package | Version | Lockfile |
+|---|---|---|---|
+| Go | `github.com/bluesky-social/indigo` | `v0.0.0-20260428083920-ce62b8fce9e0` | `server/go.mod` |
+| Go | `github.com/gorilla/websocket` | `v1.5.1` | `server/go.mod` |
+| TS | `@atproto/api` | `^0.13.0` | `web/pnpm-lock.yaml` |
+| TS | `@atproto/oauth-client-browser` | `^0.3.0` | `web/pnpm-lock.yaml` |
+
+The indigo pseudo-version corresponds to the indigo HEAD as of 2026-04-28. Indigo does not currently ship semver tags; pseudo-versions are the supported pinning mechanism per the `go list -m -versions` output.
+
 ## Consequences
 
 - Slightly slower to adopt new SDK features. Acceptable for v0.1; revisit at v0.2.
