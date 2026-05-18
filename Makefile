@@ -40,10 +40,7 @@ test: lex-validate server-test cli-test web-check
 
 lex-validate:
 	@echo ">> validating lexicons"
-	@for f in lexicons/app/hekate/*.json; do \
-		python3 -c "import json,sys; d=json.load(open('$$f')); assert d['lexicon']==1, '$$f: bad lexicon version'; assert 'id' in d, '$$f: missing id'; assert 'defs' in d, '$$f: missing defs'; print('OK $$f')" || exit 1; \
-	done
-	@echo "lexicons OK"
+	@python3 scripts/lex_validate.py lexicons/app/hekate/*.json
 
 selfhost-smoke:
 	@echo ">> selfhost smoke test"
