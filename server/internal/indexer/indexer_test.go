@@ -12,14 +12,6 @@ import (
 	"github.com/j4qfrost/hekate/server/internal/lexicon"
 )
 
-// NOTE: the end-to-end Run tests below deliberately do not exercise
-// app.hekate.venue records. lexicons/app/hekate/venue.json defines #geoPoint
-// lat/lon/altitudeMeters as "type": "number", but ATProto has no float type
-// (neither the lexicon type set nor the data model), so a venue with
-// fractional coordinates cannot be encoded as a valid record — atdata rejects
-// it on decode. Until the venue lexicon is fixed, the venue mapping is
-// covered only by the pure-Go TestVenueToIndex unit test.
-
 // fakeWriter is an in-memory index.Writer for exercising the indexer loop
 // without a Postgres instance.
 type fakeWriter struct {
@@ -77,6 +69,14 @@ func mustCBOR(t *testing.T, obj map[string]any) []byte {
 // also pins the CBOR round-trip the indexer relies on (atdata MarshalCBOR →
 // UnmarshalCBOR → JSON re-encode into the lexicon types).
 func TestRun_DecodesAndDispatches(t *testing.T) {
+	venueRec := mustCBOR(t, map[string]any{
+		"$type":         "app.hekate.venue",
+		"name":          "Lighthouse",
+		"geo":           map[string]any{"lat": "35.6812", "lon": "139.7671"},
+		"bookingPolicy": "open",
+		"amenities":     []any{"wifi", "step-free"},
+		"createdAt":     "2026-05-01T09:00:00Z",
+	})
 	recurrenceRec := mustCBOR(t, map[string]any{
 		"$type":               "app.hekate.recurrence",
 		"venue":               "at://did:plc:host/app.hekate.venue/v1",
@@ -94,6 +94,7 @@ func TestRun_DecodesAndDispatches(t *testing.T) {
 	})
 
 	mock := &firehose.Mock{Events: []firehose.Event{
+		{DID: "did:plc:v", Collection: "app.hekate.venue", RKey: "v1", Record: venueRec},
 		{DID: "did:plc:r", Collection: "app.hekate.recurrence", RKey: "r1", Record: recurrenceRec},
 		{DID: "did:plc:e", Collection: "app.hekate.event", RKey: "e1", Record: eventRec},
 		{DID: "did:plc:v", Collection: "app.hekate.venue", RKey: "v1"}, // delete tombstone
@@ -106,15 +107,23 @@ func TestRun_DecodesAndDispatches(t *testing.T) {
 		t.Fatalf("Run: %v", err)
 	}
 
+	if len(w.venues) != 1 {
+		t.Fatalf("venues = %d, want 1", len(w.venues))
+	}
+	v := w.venues[0]
+	if v.DID != "did:plc:v" || v.RKey != "v1" || v.Name != "Lighthouse" {
+		t.Errorf("venue identity/name wrong: %+v", v)
+	}
+	if v.Lat != 35.6812 || v.Lon != 139.7671 {
+		t.Errorf("venue coordinates not parsed from strings: lat=%v lon=%v", v.Lat, v.Lon)
+	}
+
 	if len(w.recurs) != 1 {
 		t.Fatalf("recurrences = %d, want 1", len(w.recurs))
 	}
 	r := w.recurs[0]
-	if r.DID != "did:plc:r" || r.RKey != "r1" || r.RRule != "FREQ=WEEKLY;BYDAY=MO" {
-		t.Errorf("recurrence identity/rrule wrong: %+v", r)
-	}
-	if r.SlotDurationMinutes != 60 {
-		t.Errorf("recurrence slotDurationMinutes = %d, want 60", r.SlotDurationMinutes)
+	if r.DID != "did:plc:r" || r.RRule != "FREQ=WEEKLY;BYDAY=MO" || r.SlotDurationMinutes != 60 {
+		t.Errorf("recurrence mapped wrong: %+v", r)
 	}
 	if !r.ValidFrom.Equal(time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)) {
 		t.Errorf("recurrence validFrom = %v", r.ValidFrom)
@@ -164,17 +173,17 @@ func TestRun_PoisonRecordDoesNotStall(t *testing.T) {
 	}
 }
 
-// TestVenueToIndex covers the venue lexicon→persistence mapping directly. It
-// runs in pure Go (floats are fine here) — the on-wire CBOR encoding of venue
-// geo is a separate, currently-broken concern; see the file-level NOTE.
+// TestVenueToIndex covers the venue lexicon→persistence mapping directly,
+// including the decimal-string coordinate parse and the address/contact
+// flattening.
 func TestVenueToIndex(t *testing.T) {
 	capacity := 120
-	altitude := 12.5
+	altitude := "12.5"
 	rec := lexicon.Venue{
 		Type:        "app.hekate.venue",
 		Name:        "Lighthouse",
 		Description: "by the sea",
-		Geo:         lexicon.GeoPoint{Lat: 35.6812, Lon: 139.7671, AltitudeMeters: &altitude},
+		Geo:         lexicon.GeoPoint{Lat: "35.6812", Lon: "139.7671", AltitudeMeters: &altitude},
 		Address: &lexicon.PostalAddress{
 			Text: "1-1 Marunouchi", Locality: "Chiyoda",
 			Region: "Tokyo", Country: "JP", PostalCode: "100-0005",
@@ -194,10 +203,10 @@ func TestVenueToIndex(t *testing.T) {
 		t.Errorf("identity wrong: %+v", v)
 	}
 	if v.Lat != 35.6812 || v.Lon != 139.7671 {
-		t.Errorf("coordinates wrong: lat=%v lon=%v", v.Lat, v.Lon)
+		t.Errorf("coordinates not parsed from strings: lat=%v lon=%v", v.Lat, v.Lon)
 	}
 	if v.AltitudeMeters == nil || *v.AltitudeMeters != 12.5 {
-		t.Errorf("altitude not carried through: %v", v.AltitudeMeters)
+		t.Errorf("altitude not parsed: %v", v.AltitudeMeters)
 	}
 	if v.Locality != "Chiyoda" || v.Region != "Tokyo" || v.Country != "JP" || v.PostalCode != "100-0005" {
 		t.Errorf("address not flattened: %+v", v)
@@ -215,7 +224,7 @@ func TestVenueToIndex(t *testing.T) {
 	// A venue with no address / contact must leave those fields zero-valued,
 	// not panic on the nil pointers.
 	bare, err := venueToIndex(firehose.Event{DID: "did:plc:v", RKey: "v2"}, lexicon.Venue{
-		Name: "Bare", Geo: lexicon.GeoPoint{Lat: 1, Lon: 2},
+		Name: "Bare", Geo: lexicon.GeoPoint{Lat: "1", Lon: "2"},
 		BookingPolicy: "open", CreatedAt: "2026-05-01T09:00:00Z",
 	})
 	if err != nil {
@@ -223,5 +232,27 @@ func TestVenueToIndex(t *testing.T) {
 	}
 	if bare.Locality != "" || bare.ContactEmail != "" {
 		t.Errorf("bare venue should have empty address/contact: %+v", bare)
+	}
+}
+
+// TestVenueToIndex_BadCoordinates verifies a venue with an unparseable or
+// out-of-range coordinate is rejected (becomes a per-record decode error the
+// indexer logs and skips), rather than silently storing garbage.
+func TestVenueToIndex_BadCoordinates(t *testing.T) {
+	cases := map[string]lexicon.GeoPoint{
+		"non-numeric lat": {Lat: "north", Lon: "139.7"},
+		"lat out of range": {Lat: "95.0", Lon: "139.7"},
+		"lon out of range": {Lat: "35.0", Lon: "200.0"},
+	}
+	for name, geo := range cases {
+		t.Run(name, func(t *testing.T) {
+			_, err := venueToIndex(firehose.Event{DID: "did:plc:v", RKey: "v1"}, lexicon.Venue{
+				Name: "Bad", Geo: geo, BookingPolicy: "open",
+				CreatedAt: "2026-05-01T09:00:00Z",
+			})
+			if err == nil {
+				t.Errorf("expected an error for %s, got nil", name)
+			}
+		})
 	}
 }

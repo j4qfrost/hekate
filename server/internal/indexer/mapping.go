@@ -2,6 +2,7 @@ package indexer
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/j4qfrost/hekate/server/internal/firehose"
@@ -34,23 +35,52 @@ func i32ptr(p *int) *int32 {
 	return &v
 }
 
+// parseCoord parses a decimal-degree coordinate string and bounds-checks it.
+// Coordinates travel as strings because the ATProto data model has no float
+// type (see lexicon.GeoPoint); this range check stands in for the lexicon
+// minimum/maximum that a string property cannot declare.
+func parseCoord(field, s string, lo, hi float64) (float64, error) {
+	v, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return 0, fmt.Errorf("%s: not a decimal number %q: %w", field, s, err)
+	}
+	if v < lo || v > hi {
+		return 0, fmt.Errorf("%s: %v is outside [%v, %v]", field, v, lo, hi)
+	}
+	return v, nil
+}
+
 func venueToIndex(ev firehose.Event, rec lexicon.Venue) (index.Venue, error) {
 	createdAt, err := parseTime("createdAt", rec.CreatedAt)
 	if err != nil {
 		return index.Venue{}, err
 	}
+	lat, err := parseCoord("geo.lat", rec.Geo.Lat, -90, 90)
+	if err != nil {
+		return index.Venue{}, err
+	}
+	lon, err := parseCoord("geo.lon", rec.Geo.Lon, -180, 180)
+	if err != nil {
+		return index.Venue{}, err
+	}
 	v := index.Venue{
-		DID:            ev.DID,
-		RKey:           ev.RKey,
-		Name:           rec.Name,
-		Description:    rec.Description,
-		Lat:            rec.Geo.Lat,
-		Lon:            rec.Geo.Lon,
-		AltitudeMeters: rec.Geo.AltitudeMeters,
-		Capacity:       i32ptr(rec.Capacity),
-		Amenities:      rec.Amenities,
-		BookingPolicy:  rec.BookingPolicy,
-		CreatedAt:      createdAt,
+		DID:           ev.DID,
+		RKey:          ev.RKey,
+		Name:          rec.Name,
+		Description:   rec.Description,
+		Lat:           lat,
+		Lon:           lon,
+		Capacity:      i32ptr(rec.Capacity),
+		Amenities:     rec.Amenities,
+		BookingPolicy: rec.BookingPolicy,
+		CreatedAt:     createdAt,
+	}
+	if rec.Geo.AltitudeMeters != nil {
+		alt, err := strconv.ParseFloat(*rec.Geo.AltitudeMeters, 64)
+		if err != nil {
+			return index.Venue{}, fmt.Errorf("geo.altitudeMeters: not a decimal number %q: %w", *rec.Geo.AltitudeMeters, err)
+		}
+		v.AltitudeMeters = &alt
 	}
 	if rec.Address != nil {
 		v.AddressText = rec.Address.Text

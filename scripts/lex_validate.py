@@ -85,6 +85,22 @@ def validate_property(path: str, name: str, prop: dict) -> None:
     elif t == "union":
         refs = prop.get("refs")
         vassert(isinstance(refs, list) and refs, f"{path}.{name}: union must have non-empty `refs`")
+    elif t == "object":
+        validate_object(f"{path}.{name}", prop)
+
+
+def validate_object(path: str, obj: dict) -> None:
+    """Validate an object schema — an object-type def or an inline object
+    property: every property is a real type, and `required` resolves to a
+    defined property. Top-level records get the stricter validate_record."""
+    props = obj.get("properties")
+    vassert(isinstance(props, dict) and props, f"{path}.properties must be a non-empty object")
+    required = obj.get("required", [])
+    vassert(isinstance(required, list), f"{path}.required must be a list")
+    missing = [r for r in required if r not in props]
+    vassert(not missing, f"{path}.required references undefined properties: {missing}")
+    for name, prop in props.items():
+        validate_property(path, name, prop)
 
 
 def validate_record(path: str, rec: dict) -> None:
@@ -109,6 +125,8 @@ def validate_def(path: str, name: str, d: dict) -> None:
         rec = d.get("record")
         vassert(isinstance(rec, dict), f"{path}.{name}.record missing or wrong type")
         validate_record(f"{path}.{name}", rec)
+    elif t == "object":
+        validate_object(f"{path}.{name}", d)
 
 
 def validate_file(p: Path) -> None:

@@ -23,10 +23,13 @@ type Venue struct {
 	CreatedAt     string         `json:"createdAt"`
 }
 
+// GeoPoint mirrors #geoPoint. lat/lon/altitudeMeters are decimal-degree
+// strings, not numbers — the ATProto data model has no float type. The
+// indexer parses and range-checks them (see package indexer).
 type GeoPoint struct {
-	Lat            float64  `json:"lat"`
-	Lon            float64  `json:"lon"`
-	AltitudeMeters *float64 `json:"altitudeMeters,omitempty"`
+	Lat            string  `json:"lat"`
+	Lon            string  `json:"lon"`
+	AltitudeMeters *string `json:"altitudeMeters,omitempty"`
 }
 
 type PostalAddress struct {
