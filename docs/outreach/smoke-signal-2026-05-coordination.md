@@ -4,7 +4,7 @@ Pre-publication draft for the M-1 outreach mandated by `docs/adr/0002-smoke-sign
 
 - **Target forum (primary):** https://discourse.smokesignal.events/
 - **Target forum (fallback):** GitHub Discussions on https://github.com/SmokeSignal-Events
-- **Originally due:** 2026-05-06 (M-1 window opened 2026-04-29). **Today is 2026-05-18 → 12 days overdue.** Please post; the `app.hekate.event` and `app.hekate.rsvp` lexicons remain unfrozen until this resolves.
+- **Originally due:** 2026-05-06 (M-1 window opened 2026-04-29). **Today is 2026-05-19 → 13 days overdue.** Please post; the `app.hekate.event` and `app.hekate.rsvp` lexicons remain unfrozen until this resolves.
 
 ---
 
@@ -40,7 +40,7 @@ Today the lexicons are at `lexicons/app/hekate/` and the spec is at `docs/SPEC.m
 2. If B is not viable: are you open to option C (joint namespace), and if so, would you prefer to bootstrap that off Smoke Signal's existing event schema or off a fresh draft?
 3. If neither B nor C: I will document **A (coexist)** as the recorded decision, with a public note that coordination was attempted.
 
-A two-week window for response feels right. I will write the recorded decision into ADR 0002 the day after the window closes (default to A on silence).
+I'd like to set a two-week window for response — **closing 2026-06-02**. I'll write the recorded decision into ADR 0002 the day after the window closes (default to A on silence).
 
 Happy to hop on a call, jump to GitHub Discussions, or work async in this thread — whichever you prefer.
 
@@ -48,6 +48,6 @@ Happy to hop on a call, jump to GitHub Discussions, or work async in this thread
 
 ## Notes for the maintainer (do not include in posted thread)
 
-- After posting, link the thread URL in `docs/adr/0002-smoke-signal-relationship.md` under Status (replace "Pending" with "Awaiting response, thread opened YYYY-MM-DD").
-- The two-week window should end no later than **2026-06-01** so M0 can still freeze the lexicons before its 2026-05-29 deadline... if that slips, push M0 — do not ship `event`/`rsvp` without this resolution per the hekate `CLAUDE.md`.
+- After posting, link the thread URL in `docs/adr/0002-smoke-signal-relationship.md` under Status — replace `Pending` with: `Awaiting response — thread opened 2026-05-19, window closes 2026-06-02, <thread-URL>`.
+- Posting on 2026-05-19 puts the response window close at **2026-06-02** — *after* the M0 lexicon-freeze date (2026-05-29). The `event`/`rsvp` lexicons therefore cannot freeze on the M0 schedule; M0 slips for those two records. The `venue`/`slot`/`recurrence` lexicons are NOT blocked by this ADR (see ADR 0002 Consequences) and can still freeze on time. Do not ship `event`/`rsvp` from a non-test PDS without this resolution, per the hekate `CLAUDE.md`.
 - If Smoke Signal responds with substantive feedback on the venue/slot/recurrence model, capture it in `docs/adr/0002-smoke-signal-relationship.md` regardless of whether it changes the decision.

@@ -1,6 +1,6 @@
 # ADR 0002 — Relationship with Smoke Signal
 
-- Status: **Pending** (M-1; awaiting coordination — overdue as of 2026-05-18)
+- Status: **Pending** (M-1; awaiting coordination — overdue as of 2026-05-19; outreach thread posting 2026-05-19, window closes 2026-06-02)
 - Date opened: 2026-04-29
 - Deciders: hekate maintainers, Smoke Signal maintainers (Nick Gerakines et al.)
 - Draft outreach: `docs/outreach/smoke-signal-2026-05-coordination.md` (maintainer posts manually)
