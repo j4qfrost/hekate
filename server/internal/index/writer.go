@@ -8,10 +8,14 @@ import "context"
 
 // Writer is the indexer interface. The Postgres-backed implementation is
 // PgWriter (see postgres.go); tests can use an in-memory fake.
+//
+// DeleteByKey applies a firehose delete tombstone — the indexer calls it for
+// events whose record body is nil.
 type Writer interface {
 	UpsertVenue(ctx context.Context, v Venue) error
 	UpsertSlot(ctx context.Context, s Slot) error
 	UpsertEvent(ctx context.Context, e Event) error
 	UpsertRSVP(ctx context.Context, r RSVP) error
 	UpsertRecurrence(ctx context.Context, rec Recurrence) error
+	DeleteByKey(ctx context.Context, did, collection, rkey string) error
 }
