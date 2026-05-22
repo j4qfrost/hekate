@@ -24,19 +24,26 @@ services:
     container_name: hekate-lgtm
     restart: unless-stopped
     ports:
-      - "3001:3000"   # Grafana (UI). 3001 chosen to avoid collisions with other dev servers.
-      - "4317:4317"   # OTLP/gRPC
-      - "4318:4318"   # OTLP/HTTP
-      - "3100:3100"   # Loki
-      - "3200:3200"   # Tempo
-      - "9009:9009"   # Mimir
+      # Loopback-bound — snowman has a public IP; this stack is Tailnet-only.
+      # Hardening: SECURITY-REPORT-2026-05-22.md finding F2.
+      - "127.0.0.1:3001:3000"   # Grafana (UI). 3001 chosen to avoid collisions with other dev servers.
+      - "127.0.0.1:4317:4317"   # OTLP/gRPC
+      - "127.0.0.1:4318:4318"   # OTLP/HTTP
+      - "127.0.0.1:3100:3100"   # Loki
+      - "127.0.0.1:3200:3200"   # Tempo
+      - "127.0.0.1:9009:9009"   # Mimir
     volumes:
       - lgtm-data:/data
       - ./grafana/dashboards:/otel-lgtm/grafana/dashboards-extra:ro
       - ./grafana/provisioning/dashboards:/otel-lgtm/grafana/conf/provisioning/dashboards:ro
     environment:
       GF_AUTH_ANONYMOUS_ENABLED: "true"
-      GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"
+      # Anonymous access is Viewer-only (was Admin) — SECURITY-REPORT-2026-05-22.md F2.
+      # Login form stays disabled; dashboards are file-provisioned, so no admin
+      # UI is needed. Residual: the built-in `admin` account is still default-
+      # credentialed and reachable via Grafana's API on the Tailnet — set
+      # GF_SECURITY_ADMIN_PASSWORD (a good early `sigil`-managed secret) to close it.
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
       GF_AUTH_DISABLE_LOGIN_FORM: "true"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health | grep -q ok"]
