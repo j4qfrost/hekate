@@ -54,6 +54,7 @@ The lexicon JSON enforces shape; the indexer enforces semantic rules:
 
 | Rule | Failure mode |
 |---|---|
+| `venue.geo` lat/lon parse as decimal-degree strings within range (lat ±90, lon ±180) | record dropped |
 | `recurrence.venue` and the recurrence record share an authoring DID | record dropped |
 | `slot.venue` and the slot record share an authoring DID | record dropped |
 | `slot.recurrence` (if set) resolves to a recurrence whose `venue` matches `slot.venue` | record dropped |

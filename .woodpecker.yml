@@ -1,0 +1,31 @@
+# Woodpecker CI for hekate — Go server + Next.js TS web (multi-toolchain).
+when:
+  - event: pull_request
+  - event: push
+    branch: [main, master, feat/*]
+  - event: manual
+
+clone:
+  git:
+    image: alpine/git
+    environment:
+      FORGEJO_USER:
+        from_secret: forgejo_user
+      FORGEJO_TOKEN:
+        from_secret: forgejo_token
+    commands:
+      - git init -b "${CI_COMMIT_BRANCH:-main}"
+      - 'git remote add origin "http://$$FORGEJO_USER:$$FORGEJO_TOKEN@forgejo:3000/${CI_REPO}.git"'
+      - 'git fetch --depth=1 origin "$$CI_COMMIT_SHA"'
+      - git checkout FETCH_HEAD
+
+steps:
+  go-check:
+    image: golang:1.22
+    commands:
+      - cd server && go vet ./... && go build ./...
+      - cd ../cli && go vet ./... && go build ./...
+  lex-validate:
+    image: node:20
+    commands:
+      - cd web && (test -f package.json && (corepack enable && pnpm install --frozen-lockfile && pnpm typecheck) || echo "(no web/package.json)")

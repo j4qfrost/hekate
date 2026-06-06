@@ -77,20 +77,22 @@
     "geoPoint": {
       "type": "object",
       "required": ["lat", "lon"],
+      "description": "WGS84 coordinates. lat/lon/altitudeMeters are decimal-degree strings (e.g. \"35.6812\"): the ATProto data model has no float type, so coordinates are carried as strings, matching the community.lexicon.location convention. Indexers parse and range-check them (lat -90..90, lon -180..180).",
       "properties": {
         "lat": {
-          "type": "number",
-          "minimum": -90,
-          "maximum": 90
+          "type": "string",
+          "maxLength": 32,
+          "description": "Latitude in decimal degrees as a string, within -90..90 (e.g. \"35.6812\")."
         },
         "lon": {
-          "type": "number",
-          "minimum": -180,
-          "maximum": 180
+          "type": "string",
+          "maxLength": 32,
+          "description": "Longitude in decimal degrees as a string, within -180..180 (e.g. \"139.7671\")."
         },
         "altitudeMeters": {
-          "type": "number",
-          "description": "Optional. Altitude in meters above sea level."
+          "type": "string",
+          "maxLength": 32,
+          "description": "Optional. Altitude in meters above sea level, as a decimal string."
         }
       }
     },
