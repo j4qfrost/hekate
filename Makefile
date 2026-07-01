@@ -1,7 +1,7 @@
 # hekate — top-level Makefile
 # Wraps per-subproject toolchains so contributors don't have to memorise them.
 
-.PHONY: help dev test lex-validate selfhost-smoke server-build server-test cli-build cli-test web-install web-check web-build clean companion-up companion-down companion-load companion-verify obs-up obs-down obs-status
+.PHONY: help dev test lex-validate selfhost-smoke server-build server-test server-integration-test cli-build cli-test web-install web-check web-build clean companion-up companion-down companion-load companion-verify obs-up obs-down obs-status
 
 help:
 	@echo "hekate development targets"
@@ -13,6 +13,7 @@ help:
 	@echo ""
 	@echo "  make server-build     build hekate-server binary"
 	@echo "  make server-test      run server tests (testcontainers required)"
+	@echo "  make server-integration-test  run external PDS round-trip test (M1 kill-criterion; needs HEKATE_TEST_HANDLE + HEKATE_TEST_APP_PASSWORD)"
 	@echo "  make cli-build        build hekate CLI binary"
 	@echo "  make cli-test         run CLI tests"
 	@echo "  make web-install      install web deps (pnpm install)"
@@ -59,6 +60,21 @@ server-build:
 
 server-test:
 	cd server && go test ./...
+
+# External PDS round-trip — the literal M1 kill-criterion test
+# (server/internal/indexer/indexer_integration_test.go, build tag `integration`).
+# Intentionally out of `make test`: it requires a live PDS account + relay
+# connectivity and takes ~30s–3min depending on firehose lag. Run manually
+# (and in a CI cron) with:
+#
+#   HEKATE_TEST_HANDLE=...@bsky.social \
+#   HEKATE_TEST_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx \
+#   make server-integration-test
+#
+# Optional overrides: HEKATE_TEST_PDS_URL, HEKATE_TEST_RELAY_URL,
+# HEKATE_TEST_TIMEOUT. See the test file for full env-var semantics.
+server-integration-test:
+	cd server && go test -tags=integration -count=1 -timeout=10m -v ./internal/indexer/... -run TestExternalPDSRoundTrip
 
 cli-build:
 	cd cli && go build -o bin/hekate ./cmd/hekate
