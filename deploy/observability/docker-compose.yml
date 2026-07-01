@@ -26,12 +26,12 @@ services:
     ports:
       # Loopback-bound — snowman has a public IP; this stack is Tailnet-only.
       # Hardening: SECURITY-REPORT-2026-05-22.md finding F2.
-      - "127.0.0.1:3001:3000"   # Grafana (UI). 3001 chosen to avoid collisions with other dev servers.
-      - "127.0.0.1:4317:4317"   # OTLP/gRPC
-      - "127.0.0.1:4318:4318"   # OTLP/HTTP
-      - "127.0.0.1:3100:3100"   # Loki
-      - "127.0.0.1:3200:3200"   # Tempo
-      - "127.0.0.1:9009:9009"   # Mimir
+      - "127.0.0.1:${OBSERVABILITY_GRAFANA_PORT:-3001}:3000"   # Grafana (UI). 3001 chosen to avoid collisions with other dev servers.
+      - "127.0.0.1:${OBSERVABILITY_OTLP_GRPC_PORT:-4317}:4317"   # OTLP/gRPC
+      - "127.0.0.1:${OBSERVABILITY_OTLP_HTTP_PORT:-4318}:4318"   # OTLP/HTTP
+      - "127.0.0.1:${OBSERVABILITY_LOKI_PORT:-3100}:3100"   # Loki
+      - "127.0.0.1:${OBSERVABILITY_TEMPO_PORT:-3200}:3200"   # Tempo
+      - "127.0.0.1:${OBSERVABILITY_MIMIR_PORT:-9009}:9009"   # Mimir
     volumes:
       - lgtm-data:/data
       - ./grafana/dashboards:/otel-lgtm/grafana/dashboards-extra:ro
