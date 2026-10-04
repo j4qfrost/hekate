@@ -7,7 +7,7 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.{js,ts}']
   },
   server: {
-    port: 5173,
+    port: Number(process.env.VITE_PORT) || 5173,
     strictPort: false
   }
 });
