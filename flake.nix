@@ -24,7 +24,7 @@
             pname = "hekate-server";
             version = "0.1.0";
             src = ./server;
-            vendorHash = "sha256-q5mB7QYYgbcAVQwIeWEr7M9s+pGo0UqG08xGH2QpJTc=";
+            vendorHash = "sha256-Irrp0aZfSXMrzdE6lo4Tv+39WL3mC0g8Wx3sFSuip/c=";
             # Only build the server binary; skip building every internal pkg main.
             subPackages = [ "cmd/hekate-server" ];
             # Integration tests need Postgres; keep the nix check build-only.

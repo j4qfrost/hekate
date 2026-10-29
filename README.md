@@ -1,13 +1,10 @@
 # hekate
 
-> Venue-first event coordination on the AT Protocol.
+> Venue-first event lexicons on the AT Protocol.
 
-hekate is a federated event-coordination protocol and reference implementation. It models **venues** as first-class records: a place exists in the system before any event is attached to it. Venues publish discrete time-slots and/or RFC-5545 RRULE-based recurrences that expand into slots; organizers claim a slot by publishing an event record. All state lives in user and venue PDSes — the indexer is read-only and replaceable.
+hekate is a venue-first event lexicon set on the AT Protocol. The Go server, CLI, and SvelteKit web client originally planned around it were paused on 2026-10-29 per the project's precommitted kill criterion ([docs/ROADMAP.md](docs/ROADMAP.md)). The lexicons remain the durable artifact and are usable by any AT Protocol indexer.
 
-## Status
-
-- **M0 (lexicons)**: in progress, target 2026-05-29.
-- M1 (server), M2 (CLI), M2.5 (grant), M3 (web), M4 (reference instance) — see [`docs/ROADMAP.md`](docs/ROADMAP.md).
+The lexicons model **venues** as first-class records: a place exists in the system before any event is attached to it. Venues publish discrete time-slots and/or RFC-5545 RRULE-based recurrences that expand into slots; organizers claim a slot by publishing an event record. All state lives in user and venue PDSes.
 
 ## Why venue-first?
 
@@ -15,30 +12,28 @@ Most event apps make the *event* primary and the venue a free-text field. That w
 
 hekate flips the model. A venue exists once and offers slots forever. An event is what happens to claim a slot.
 
+## Lexicons
+
+The lexicon schemas are in [`lexicons/app/hekate/`](lexicons/app/hekate/) and documented in [`docs/SPEC.md`](docs/SPEC.md):
+
+- `app.hekate.venue` — a physical or virtual place that offers time-slots
+- `app.hekate.slot` — a single bookable time window offered by a venue
+- `app.hekate.recurrence` — an RRULE-based recurring availability pattern
+- `app.hekate.event` — an organizer's claim of a slot *(subject to change pending ADR 0002)*
+- `app.hekate.rsvp` — an attendee's RSVP to an event *(subject to change pending ADR 0002)*
+
 ## What's in this repo
 
 ```
-lexicons/      AT Protocol record schemas (the durable artifact)
-server/        Go indexer + read API (M1)
-cli/           Go CLI — the v0.1 reference client (M2)
-web/           SvelteKit 2 web client (M3, off the critical path)
-deploy/        Docker Compose for one-command self-hosting
-docs/          Spec, architecture, self-host guide, roadmap, ADRs
+lexicons/      AT Protocol record schemas (the maintained artifact)
+server/        Go indexer + read API (paused at last commit)
+cli/           Go CLI (paused at last commit)
+web/           SvelteKit 2 web client (paused at last commit)
+deploy/        Docker Compose (paused at last commit)
+docs/          Spec, architecture, roadmap, ADRs
 ```
 
-## 5-minute self-host
-
-```bash
-git clone https://github.com/j4qfrost/hekate.git
-cd hekate/deploy
-docker compose up -d
-```
-
-Server on `:8080`, web on `:5173`, Postgres+PostGIS managed automatically. See [`docs/SELFHOST.md`](docs/SELFHOST.md) for production hardening.
-
-## Observability
-
-Optional LGTM stack (Loki, Grafana, Tempo, Mimir) via OpenTelemetry — pre-provisioned dashboard for **venue users** and **events processing**. Bring up with `make obs-up`, point hekate-server at `localhost:4317`, open Grafana at `http://localhost:3001/d/hekate-overview`. See [`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md) and [ADR 0005](docs/adr/0005-lgtm-observability-stack.md). Stays out of the production self-host compose so the 5-minute promise holds.
+The paused components remain in-tree at their last commit as historical context but are no longer built or shipped.
 
 ## Contributing
 
